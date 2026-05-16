@@ -5,7 +5,7 @@ import os
 from flask import Flask
 from threading import Thread
 
-TOKEN = "7880504781:AAElG-W_GZ62_NlT5X70WnCgL8-8x3-R0X8"
+TOKEN = "8654803333:AAF1FNhsGXrf_IYj-ekAU0uujQyuc7vtl1w"
 bot = telebot.TeleBot(TOKEN)
 
 # 1. RENDER ÖÇMEZLIGI ÜÇIN FLASK WEB PORTY
