@@ -1,19 +1,36 @@
 import telebot
 from telebot import types
 import sqlite3
+import os
+from flask import Flask
+from threading import Thread
 
-TOKEN = "7880504781:AAElG-W_GZ62_NlT5X70WnCgL8-8x3-R0X8" # Siziň bot tokeniňiz
+TOKEN = "7880504781:AAElG-W_GZ62_NlT5X70WnCgL8-8x3-R0X8"
 bot = telebot.TeleBot(TOKEN)
 
-# Maglumat binasyny gurnamak (Ulanyjy dilleri we ballary üçin)
+# 1. RENDER ÖÇMEZLIGI ÜÇIN FLASK WEB PORTY
+app = Flask('')
+@app.route('/')
+def home(): 
+    return "Bot is running perfectly!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+# 2. BOTUŇ BAŞYNDAKY OWADAN SURAT
+START_PHOTO = "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?q=80&w=1000&auto=format&fit=crop"
+
+# 3. MAGLUMAT BINASY (Diller, Ballar we Çakylyklar)
 def init_db():
-    conn = sqlite3.connect("bot_users.db")
+    conn = sqlite3.connect("bot_users.db", check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
             lang TEXT,
-            balance REAL DEFAULT 0.0
+            balance REAL DEFAULT 0.0,
+            referred_by INTEGER DEFAULT 0
         )
     """)
     conn.commit()
@@ -21,53 +38,70 @@ def init_db():
 
 init_db()
 
-# Tekstler (Iňlis we Rus)
+# 4. IŇLIS WE RUS DILLERINDE TEKSTLER
 TEXTS = {
     'en': {
-        'welcome': "Welcome to FastAdsMoney! Select an option below to start earning TON.",
+        'welcome': "✨ *Welcome to FastAdsMoney!* \n\nEarn TON crypto by completing easy tasks or inviting friends.",
         'btn_earn': "🚀 Start Earning",
-        'btn_balance': "💰 My Balance",
-        'btn_lang': "🌐 Change Language",
-        'balance_msg': "Your current balance: *{} TON*",
-        'earn_msg': "Complete high-paying tasks, surveys, and download apps to earn TON!\n\n👉 [Click Here to Start Tasks](YOUR_MONLIX_LINK_HERE)"
+        'btn_ref': "👥 Invite Friends",
+        'btn_balance': "💰 Balance",
+        'btn_lang': "🌐 Language",
+        'balance_msg': "💵 *Your Balance:* \n\n💰 `{} TON`",
+        'ref_msg': "👥 *Referral Program*\n\nShare your link and earn *0.10 TON* for every friend you invite!\n\n🔗 Your link: https://t.me/{}?start={}",
+        'earn_msg': "🔥 *Choose Earning Method:*\n\n1️⃣ [CPALead Tasks](https://www.cpalead.com) — Fast ads & shortlinks\n2️⃣ [Monlix Offers](https://monlix.com) — High paying apps & surveys\n\n*(Note: Complete tasks and balance updates automatically!)*"
     },
     'ru': {
-        'welcome': "Добро пожаловать в FastAdsMoney! Выберите опцию ниже, чтобы начать зарабатывать TON.",
+        'welcome': "✨ *Добро пожаловать в FastAdsMoney!* \n\nЗарабатывайте TON за выполнение заданий или приглашение друзей.",
         'btn_earn': "🚀 Начать зарабатывать",
+        'btn_ref': "👥 Пригласить друзей",
         'btn_balance': "💰 Мой баланс",
         'btn_lang': "🌐 Сменить язык",
-        'balance_msg': "Ваш текущий баланс: *{} TON*",
-        'earn_msg': "Выполняйте высокооплачиваемые задания, опросы и скачивайте приложения, чтобы заработать TON!\n\n👉 [Нажмите здесь, чтобы начать](YOUR_MONLIX_LINK_HERE)"
+        'balance_msg': "💵 *Ваш баланс:* \n\n💰 `{} TON`",
+        'ref_msg': "👥 *Реферальная программа*\n\nПоделись ссылкой и получай *0.10 TON* за каждого приглашенного друга!\n\n🔗 Твоя ссылка: https://t.me/{}?start={}",
+        'earn_msg': "🔥 *Выберите способ заработка:*\n\n1️⃣ [CPALead Задания](https://www.cpalead.com) — Быстрые объявления\n2️⃣ [Monlix Офферы](https://monlix.com) — Высокооплачиваемые опросы\n\n*(Задания обновляются автоматически!)*"
     }
 }
 
-# Dil saýlamak düwmeleri
 def lang_keyboard():
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("English 🇬🇧", callback_data="set_lang_en"))
     markup.add(types.InlineKeyboardButton("Русский 🇷🇺", callback_data="set_lang_ru"))
     return markup
 
-# Esasy menýu düwmeleri
 def main_keyboard(lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(TEXTS[lang]['btn_earn'])
-    markup.row(TEXTS[lang]['btn_balance'], TEXTS[lang]['btn_lang'])
+    markup.row(TEXTS[lang]['btn_balance'], TEXTS[lang]['btn_ref'])
+    markup.row(TEXTS[lang]['btn_lang'])
     return markup
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
-    conn = sqlite3.connect("bot_users.db")
+    args = message.text.split()
+    
+    conn = sqlite3.connect("bot_users.db", check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT lang FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     
     if row is None:
-        bot.send_message(user_id, "Please select your language / Пожалуйста, выберите язык:", reply_markup=lang_keyboard())
+        # Referal barlagy (biri çagyrsa bonus bermek)
+        ref_id = int(args[1]) if len(args) > 1 and args[1].isdigit() else 0
+        cursor.execute("INSERT OR REPLACE INTO users (user_id, lang, referred_by) VALUES (?, ?, ?)", (user_id, 'en', ref_id))
+        
+        if ref_id != 0 and ref_id != user_id:
+            cursor.execute("UPDATE users SET balance = balance + 0.10 WHERE user_id = ?", (ref_id,))
+            try: 
+                bot.send_message(ref_id, "🎉 Someone joined using your link! You received +0.10 TON.")
+            except: 
+                pass
+            
+        conn.commit()
+        bot.send_message(user_id, "Select your language / Выберите язык:", reply_markup=lang_keyboard())
     else:
         lang = row[0]
-        bot.send_message(user_id, TEXTS[lang]['welcome'], reply_markup=main_keyboard(lang))
+        bot.send_photo(user_id, START_PHOTO, caption=TEXTS[lang]['welcome'], reply_markup=main_keyboard(lang), parse_mode="Markdown")
     conn.close()
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("set_lang_"))
@@ -75,19 +109,22 @@ def callback_lang(call):
     user_id = call.from_user.id
     lang = call.data.split("_")[2]
     
-    conn = sqlite3.connect("bot_users.db")
+    conn = sqlite3.connect("bot_users.db", check_same_thread=False)
     cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO users (user_id, lang) VALUES (?, ?)", (user_id, lang))
+    cursor.execute("UPDATE users SET lang = ? WHERE user_id = ?", (lang, user_id))
     conn.commit()
     conn.close()
     
-    bot.delete_message(call.message.chat.id, call.message.message_id)
-    bot.send_message(user_id, TEXTS[lang]['welcome'], reply_markup=main_keyboard(lang))
+    try: 
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    except: 
+        pass
+    bot.send_photo(user_id, START_PHOTO, caption=TEXTS[lang]['welcome'], reply_markup=main_keyboard(lang), parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: True)
 def handle_menu(message):
     user_id = message.from_user.id
-    conn = sqlite3.connect("bot_users.db")
+    conn = sqlite3.connect("bot_users.db", check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT lang, balance FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
@@ -100,15 +137,18 @@ def handle_menu(message):
     lang, balance = row
     conn.close()
 
+    bot_username = bot.get_me().username
+
     if message.text == TEXTS[lang]['btn_earn']:
-        # Monlix salkynyny goşanyňyzda döräp biljek format
-        user_link = f"https://monlix.com/your_id?uid={user_id}" # Muny soň anyklarys
-        msg = TEXTS[lang]['earn_msg'].replace("YOUR_MONLIX_LINK_HERE", user_link)
-        bot.send_message(user_id, msg, parse_mode="Markdown")
+        bot.send_message(user_id, TEXTS[lang]['earn_msg'], parse_mode="Markdown", disable_web_page_preview=True)
     elif message.text == TEXTS[lang]['btn_balance']:
         bot.send_message(user_id, TEXTS[lang]['balance_msg'].format(balance), parse_mode="Markdown")
+    elif message.text == TEXTS[lang]['btn_ref']:
+        bot.send_message(user_id, TEXTS[lang]['ref_msg'].format(bot_username, user_id), parse_mode="Markdown")
     elif message.text == TEXTS[lang]['btn_lang']:
         bot.send_message(user_id, "Select language / Выберите язык:", reply_markup=lang_keyboard())
 
 if __name__ == "__main__":
+    # Flask portuny we Boty arka fonda bir wagtda işletmek
+    Thread(target=run_flask).start()
     bot.infinity_polling()
