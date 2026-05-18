@@ -5,12 +5,10 @@ import os
 from flask import Flask, request
 from threading import Thread
 
-import os
+BOT_TOKEN = os.getenv("8654803333:AAF1FNhsGXrf_IYj-ekAU0uujQyuc7vtl1w")
 
-BOT_TOKEN = os.getenv(8654803333:AAF1FNhsGXrf_IYj-ekAU0uujQyuc7vtl1w"")
+ADMIN_ID = 8654803333
 
-
-ADMIN_ID = 8654803333  
 
 app = Flask('')
 
