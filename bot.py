@@ -2,17 +2,47 @@ import telebot
 from telebot import types
 import sqlite3
 import os
-from flask import Flask
+from flask import Flask, request
 from threading import Thread
 
 TOKEN = "8654803333:AAF1FNhsGXrf_IYj-ekAU0uujQyuc7vtl1w"
 bot = telebot.TeleBot(TOKEN)
 
-# 1. RENDER ÖÇMEZLIGI ÜÇIN FLASK WEB PORTY
+# 1. RENDER ÖÇMEZLIGI ÜÇIN FLASK WEB PORTY WE ADSGRAM WEBHOOK
 app = Flask('')
+
 @app.route('/')
 def home(): 
     return "Bot is running perfectly!"
+
+# Adsgram-dan gelýän awtomatiki habarlary kabul edýän ýer (Postback)
+@app.route('/adsgram_webhook', methods=['GET'])
+def adsgram_webhook():
+    user_id = request.args.get('user_id')  # Wideo gören ulanyjynyň Telegram ID-si
+    status = request.args.get('status')   # Reklamanyň gutaranlyk statusy
+    
+    # Eger wideo doly görlen bolsa we baýrak statusy gelse
+    if status == 'reward' and user_id:
+        try:
+            conn = sqlite3.connect("bot_users.db", check_same_thread=False)
+            cursor = conn.cursor()
+            
+            # Her wideo üçin ulanyja 0.02 TON berýäris (islegiňize görä üýtgedip bilersiňiz)
+            reward_amount = 0.02
+            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (reward_amount, user_id))
+            conn.commit()
+            conn.close()
+            
+            # Ulanyja göni bota gutlag hatyny ugratmak
+            success_text = f"🎉 *Gözüňiz aýdyň!* Wideo reklamany ahyryna çenli göreniňiz üçin hasabyňyza `+{reward_amount} TON` goşuldy!"
+            bot.send_message(user_id, success_text, parse_mode="Markdown")
+            
+            return "OK", 200
+        except Exception as e:
+            print("Postback-de ýalňyşlyk döredi:", e)
+            return "Database Error", 500
+            
+    return "Invalid Request", 400
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
@@ -38,6 +68,9 @@ def init_db():
 
 init_db()
 
+# ADSGRAM PLATFORMASYNDAN ALAN TÄZE BLOCK ID KODUŇYZ
+ADSGRAM_BLOCK_ID = "bot-30505"
+
 # 4. IŇLIS WE RUS DILLERINDE TEKSTLER
 TEXTS = {
     'en': {
@@ -48,7 +81,8 @@ TEXTS = {
         'btn_lang': "🌐 Language",
         'balance_msg': "💵 *Your Balance:* \n\n💰 `{} TON`",
         'ref_msg': "👥 *Referral Program*\n\nShare your link and earn *0.10 TON* for every friend you invite!\n\n🔗 Your link: https://t.me/{}?start={}",
-        'earn_msg': "🔥 *Choose Earning Method:*\n\n1️⃣ [CPALead Tasks](https://www.cpalead.com) — Fast ads & shortlinks\n2️⃣ [Monlix Offers](https://monlix.com) — High paying apps & surveys\n\n*(Note: Complete tasks and balance updates automatically!)*"
+        'earn_msg': "🔥 *Click the button below to watch a short video ad and instantly earn TON!*",
+        'btn_watch_ad': "📺 Watch Ad & Earn TON"
     },
     'ru': {
         'welcome': "✨ *Добро пожаловать в FastAdsMoney!* \n\nЗарабатывайте TON за выполнение заданий или приглашение друзей.",
@@ -58,7 +92,8 @@ TEXTS = {
         'btn_lang': "🌐 Сменить язык",
         'balance_msg': "💵 *Ваш баланс:* \n\n💰 `{} TON`",
         'ref_msg': "👥 *Реферальная программа*\n\nПоделись ссылкой и получай *0.10 TON* за каждого приглашенного друга!\n\n🔗 Твоя ссылка: https://t.me/{}?start={}",
-        'earn_msg': "🔥 *Выберите способ заработка:*\n\n1️⃣ [CPALead Задания](https://www.cpalead.com) — Быстрые объявления\n2️⃣ [Monlix Офферы](https://monlix.com) — Высокооплачиваемые опросы\n\n*(Задания обновляются автоматически!)*"
+        'earn_msg': "🔥 *Нажмите на кнопку ниже, чтобы посмотреть короткую видеорекламу и мгновенно заработать TON!*",
+        'btn_watch_ad': "📺 Посмотреть видео и заработать"
     }
 }
 
@@ -86,7 +121,6 @@ def send_welcome(message):
     row = cursor.fetchone()
     
     if row is None:
-        # Referal barlagy (biri çagyrsa bonus bermek)
         ref_id = int(args[1]) if len(args) > 1 and args[1].isdigit() else 0
         cursor.execute("INSERT OR REPLACE INTO users (user_id, lang, referred_by) VALUES (?, ?, ?)", (user_id, 'en', ref_id))
         
@@ -140,7 +174,15 @@ def handle_menu(message):
     bot_username = bot.get_me().username
 
     if message.text == TEXTS[lang]['btn_earn']:
-        bot.send_message(user_id, TEXTS[lang]['earn_msg'], parse_mode="Markdown", disable_web_page_preview=True)
+        markup = types.InlineKeyboardMarkup()
+        # Adsgram-yň Telegram Mini App-da däl-de, adaty botuň içinde göni açylmagy üçin ýörite url çykgydy
+        adsgram_url = f"https://render.adsgram.ai/wvideo?bg=1&blockId={ADSGRAM_BLOCK_ID}&subid={user_id}"
+        
+        btn_ad = types.InlineKeyboardButton(text=TEXTS[lang]['btn_watch_ad'], url=adsgram_url)
+        markup.add(btn_ad)
+        
+        bot.send_message(user_id, TEXTS[lang]['earn_msg'], parse_mode="Markdown", reply_markup=markup)
+        
     elif message.text == TEXTS[lang]['btn_balance']:
         bot.send_message(user_id, TEXTS[lang]['balance_msg'].format(balance), parse_mode="Markdown")
     elif message.text == TEXTS[lang]['btn_ref']:
@@ -149,6 +191,5 @@ def handle_menu(message):
         bot.send_message(user_id, "Select language / Выберите язык:", reply_markup=lang_keyboard())
 
 if __name__ == "__main__":
-    # Flask portuny we Boty arka fonda bir wagtda işletmek
     Thread(target=run_flask).start()
     bot.infinity_polling()
