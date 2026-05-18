@@ -9,9 +9,9 @@ TOKEN = "8654803333:AAF1FNhsGXrf_IYj-ekAU0uujQyuc7vtl1w"
 bot = telebot.TeleBot(TOKEN)
 
 # ADMINUŇ TELEGRAM ID-SI
-ADMIN_ID = 8654803333
+ADMIN_ID = 8654803333  
 
-# 1. FLASK WEB PORTY WE ADSGRAM WEBHOOK
+# 1. RENDER ÖÇMEZLIGI ÜÇIN FLASK WEB PORTY WE ADSGRAM WEBHOOK
 app = Flask('')
 
 @app.route('/')
@@ -28,13 +28,13 @@ def adsgram_webhook():
             conn = sqlite3.connect("bot_users.db", check_same_thread=False)
             cursor = conn.cursor()
             
-            # HER WIDEO ÜÇIN 0.0005 TON (ADMIN PEÝDASY ÜÇIN SAKLANDY)
+            # HER WIDEO REKLAMA ÜÇIN 0.0005 TON (ADMIN SAP PEÝDASY ÜÇIN)
             reward_amount = 0.0005
             cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (reward_amount, user_id))
             conn.commit()
             conn.close()
             
-            success_text = f"🎉 *Gözüňiz aýdyň!* Wideo reklamany göreniňiz üçin hasabyňyza `+{reward_amount} TON` goşuldy!"
+            success_text = f"🎉 *Gözüňiz aýdyň!* Wideo reklamany göreniňiz üçün hasabyňyza `+{reward_amount} TON` goşuldy!"
             bot.send_message(user_id, success_text, parse_mode="Markdown")
             
             return "OK", 200
@@ -48,10 +48,10 @@ def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# 2. BOTUŇ BAŞYNDAKY OWADAN SURAT
+# 2. BOTUŇ BAŞYNDAKY SURAT
 START_PHOTO = "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?q=80&w=1000&auto=format&fit=crop"
 
-# 3. MAGLUMAT BINASY
+# 3. MAGLUMAT BINASY (DATABASE MANAGER)
 def init_db():
     conn = sqlite3.connect("bot_users.db", check_same_thread=False)
     cursor = conn.cursor()
@@ -69,12 +69,13 @@ def init_db():
 
 init_db()
 
+# SURATDAKY UNIT ID-ŇIZ (ŞU ÝERE GOÝULDY)
 ADSGRAM_BLOCK_ID = "bot-30505"
 
 # MINIMAL PUL ÇYKARMAK ÇÄGI (1.5 TON = ~3$)
 MIN_WITHDRAW = 1.5
 
-# 4. TON ULGAMYNA GÖRÄ TEKSTLER
+# 4. TEKSTLER WE DÜWMELER (TM / RU DILLERINDE)
 TEXTS = {
     'en': {
         'welcome': "✨ *Welcome to FastAdsMoney!* \n\nEarn TON crypto by completing easy tasks or inviting friends.",
@@ -93,7 +94,7 @@ TEXTS = {
         'admin_alert': "🚨 *New Withdrawal Request!*\n\n👤 User: `{}`\n💰 Amount: `{:.4f} TON`\n👛 Wallet: `{}`"
     },
     'ru': {
-        'welcome': "✨ *Добро пожаловать в FastAdsMoney!* \n\nЗарабатывайте TON за выполнение заданий или приглашение друзей.",
+        'welcome': "✨ *Добро пожаловать в FastAdsMoney!* \n\nЗарабатывайте TON за выполнение заданий или получение бонусов за друзей.",
         'btn_earn': "🚀 Начать зарабатывать",
         'btn_ref': "👥 Пригласить друзей",
         'btn_balance': "💰 Мой баланс",
@@ -224,3 +225,4 @@ def handle_menu(message):
 if __name__ == "__main__":
     Thread(target=run_flask).start()
     bot.infinity_polling()
+        
