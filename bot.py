@@ -8,10 +8,8 @@ from threading import Thread
 TOKEN = "8654803333:AAF1FNhsGXrf_IYj-ekAU0uujQyuc7vtl1w"
 bot = telebot.TeleBot(TOKEN)
 
-# ADMINUŇ TELEGRAM ID-SI
 ADMIN_ID = 8654803333  
 
-# 1. RENDER ÖÇMEZLIGI ÜÇIN FLASK WEB PORTY WE ADSGRAM WEBHOOK
 app = Flask('')
 
 @app.route('/')
@@ -28,7 +26,6 @@ def adsgram_webhook():
             conn = sqlite3.connect("bot_users.db", check_same_thread=False)
             cursor = conn.cursor()
             
-            # HER WIDEO REKLAMA ÜÇIN 0.0005 TON (ADMIN SAP PEÝDASY ÜÇIN)
             reward_amount = 0.0005
             cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (reward_amount, user_id))
             conn.commit()
@@ -48,10 +45,8 @@ def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# 2. BOTUŇ BAŞYNDAKY SURAT
 START_PHOTO = "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?q=80&w=1000&auto=format&fit=crop"
 
-# 3. MAGLUMAT BINASY (DATABASE MANAGER)
 def init_db():
     conn = sqlite3.connect("bot_users.db", check_same_thread=False)
     cursor = conn.cursor()
@@ -69,13 +64,9 @@ def init_db():
 
 init_db()
 
-# SURATDAKY UNIT ID-ŇIZ (ŞU ÝERE GOÝULDY)
 ADSGRAM_BLOCK_ID = "bot-30505"
-
-# MINIMAL PUL ÇYKARMAK ÇÄGI (1.5 TON = ~3$)
 MIN_WITHDRAW = 1.5
 
-# 4. TEKSTLER WE DÜWMELER (TM / RU DILLERINDE)
 TEXTS = {
     'en': {
         'welcome': "✨ *Welcome to FastAdsMoney!* \n\nEarn TON crypto by completing easy tasks or inviting friends.",
@@ -197,6 +188,7 @@ def handle_menu(message):
 
     if message.text == TEXTS[lang]['btn_earn']:
         markup = types.InlineKeyboardMarkup()
+        # ULANYJYNY GÖNI REKLAMA TARAP IBERÝÄN WE GÖNÜMEL WEB BRAUZER BÖKDENÇLIGINI AÝYRAN TÄZE LINK GURLUŞY
         adsgram_url = f"https://render.adsgram.ai/wvideo?bg=1&blockId={ADSGRAM_BLOCK_ID}&subid={user_id}"
         btn_ad = types.InlineKeyboardButton(text=TEXTS[lang]['btn_watch_ad'], url=adsgram_url)
         markup.add(btn_ad)
@@ -225,4 +217,3 @@ def handle_menu(message):
 if __name__ == "__main__":
     Thread(target=run_flask).start()
     bot.infinity_polling()
-        
