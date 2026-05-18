@@ -188,7 +188,7 @@ def handle_menu(message):
 
     if message.text == TEXTS[lang]['btn_earn']:  
         markup = types.InlineKeyboardMarkup()  
-        adsgram_url = f"https://render.adsgram.ai/wvideo?bg=1&blockId={ADSGRAM_BLOCK_ID}&subid={user_id}"  
+        adsgram_url = f"https://t.me/AdsgramRewardBot/start?startapp=30505-{user_id}"
         btn_ad = types.InlineKeyboardButton(text=TEXTS[lang]['btn_watch_ad'], url=adsgram_url)  
         markup.add(btn_ad)  
         bot.send_message(user_id, TEXTS[lang]['earn_msg'], parse_mode="Markdown", reply_markup=markup)  
