@@ -1,6 +1,7 @@
 """
 FastAdsMoney Telegram Bot
 Professional Version with Monetag & Channel/Bot Promotion System
+Integrated with TON Deposit System & Fixed WebApp Routes
 """
 
 import telebot
@@ -12,11 +13,17 @@ from flask import Flask, request, jsonify
 from threading import Thread
 
 # ============================================================
-#  CONFIGURATION (Render Nastroykasyndan alar)
+#  CONFIGURATION (Render Sazlamalary)
 # ============================================================
 TOKEN        = os.environ.get("BOT_TOKEN")
 ADMIN_ID     = int(os.environ.get("ADMIN_ID", "0"))
 BOT_USERNAME = "FastAdsMoneyBot"
+
+# ⚠️ Render-den berlen hakyky saýt salgyňyzy şu ýere ýazyň (mysal üçin: fastadsmoney.onrender.com)
+RENDER_DOMEN = "fastadsmoney.onrender.com" 
+
+# ⚠️ Pul salmak (Depozit) üçin öz esasy TON gapjyk adresiňizi şu ýere ýazyň:
+MY_TON_WALLET = "ŞU_ÝERE_ÖZ_TON_GAPJYK_ADRESIŇIZI_ÝAZYŇ"
 
 MONETAG_LINK    = "https://omg10.com/4/11082821"
 REWARD_PER_AD   = 0.0005
@@ -78,6 +85,7 @@ def init_db():
     logger.info("Database initialized ✅")
 
 init_db()
+
 # ============================================================
 #  TEXTS  (EN / RU)
 # ============================================================
@@ -86,6 +94,7 @@ TEXTS = {
         'welcome'       : "✨ *Welcome to FastAdsMoney!*\n\nEarn real TON crypto by watching short ads or inviting friends.",
         'btn_earn'      : "🚀 Start Earning",
         'btn_balance'   : "💰 Balance",
+        'btn_deposit'   : "📥 Deposit TON",
         'btn_ref'       : "👥 Invite Friends",
         'btn_withdraw'  : "💳 Withdraw TON",
         'btn_lang'      : "🌐 Language",
@@ -94,6 +103,7 @@ TEXTS = {
         'balance_msg'   : "💵 *Your Balance*\n\n💰 `{:.4f} TON`\n📺 Ads watched: *{}*\n🏆 Total earned: `{:.4f} TON`",
         'earn_msg'      : "🔥 *Watch a short ad and earn {:.4f} TON instantly!*\n\nClick the button below to open the ad player.",
         'btn_watch_ad'  : "📺 Watch Ad & Earn TON",
+        'deposit_msg'   : "📥 *Deposit TON*\n\nTo fund your balance, send TON to the address below:\n\nWallet Address:\n`{}`\n\n⚠️ *CRITICAL:* You MUST include this number in the **Comment / Memo** field of your transaction:\n`{}`\n\nIf you forget the comment, your deposit will not be credited automatically!",
         'ref_msg'       : "👥 *Referral Program*\n\nInvite friends and earn *{} TON* per person!\n\n🔗 Your link:\n`https://t.me/{}?start={}`",
         'withdraw_low'  : "❌ Minimum withdrawal is *{} TON* (~$3).\n\n💡 Keep watching ads to reach the limit!",
         'withdraw_req'  : "📝 Send your *TON wallet address* (e.g. Tonkeeper) to withdraw `{:.4f} TON`:",
@@ -116,6 +126,7 @@ TEXTS = {
         'welcome'       : "✨ *Добро пожаловать в FastAdsMoney!*\n\nЗарабатывайте реальные TON, просматривая рекламу или приглашая друзей.",
         'btn_earn'      : "🚀 Начать зарабатывать",
         'btn_balance'   : "💰 Мой баланс",
+        'btn_deposit'   : "📥 Пополнить баланс",
         'btn_ref'       : "👥 Пригласить друзей",
         'btn_withdraw'  : "💳 Вывести TON",
         'btn_lang'      : "🌐 Сменить язык",
@@ -124,6 +135,7 @@ TEXTS = {
         'balance_msg'   : "💵 *Ваш баланс*\n\n💰 `{:.4f} TON`\n📺 Просмотров рекламы: *{}*\n🏆 Всего заработано: `{:.4f} TON`",
         'earn_msg'      : "🔥 *Посмотрите короткую рекламу и получите {:.4f} TON мгновенно!*\n\nНажмите кнопку ниже для просмотра.",
         'btn_watch_ad'  : "📺 Смотреть рекламу и зарабатывать",
+        'deposit_msg'   : "📥 *Пополнение баланса TON*\n\nДля пополнения баланса переведите TON на указанный адрес:\n\nАдрес кошелька:\n`{}`\n\n⚠️ *ВАЖНО:* В поле **Комментарий / Memo** к переводу ОБЯЗАТЕЛЬНО укажите этот код:\n`{}`\n\nЕсли вы не укажете комментарий, средства не будут зачислены автоматически!",
         'ref_msg'       : "👥 *Реферальная программа*\n\nПриглашай друзей и получай *{} TON* за каждого!\n\n🔗 Твоя ссылка:\n`https://t.me/{}?start={}`",
         'withdraw_low'  : "❌ Минимальная сумма вывода — *{} TON* (~$3).\n\n💡 Смотрите больше рекламы!",
         'withdraw_req'  : "📝 Отправьте адрес вашего *TON кошелька* (например, Tonkeeper) для вывода `{:.4f} TON`:",
@@ -143,7 +155,6 @@ TEXTS = {
         'btn_confirm'   : "✅ Подтвердить",
     }
 }
-
 # ============================================================
 #  HELPERS
 # ============================================================
@@ -172,8 +183,9 @@ def count_referrals(user_id):
 def main_keyboard(lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(TEXTS[lang]['btn_earn'])
-    markup.row(TEXTS[lang]['btn_balance'], TEXTS[lang]['btn_ref'])
-    markup.row(TEXTS[lang]['btn_withdraw'], TEXTS[lang]['btn_promote'])
+    markup.row(TEXTS[lang]['btn_balance'], TEXTS[lang]['btn_deposit'])
+    markup.row(TEXTS[lang]['btn_ref'], TEXTS[lang]['btn_withdraw'])
+    markup.row(TEXTS[lang]['btn_promote'])
     markup.row(TEXTS[lang]['btn_stats'],   TEXTS[lang]['btn_lang'])
     return markup
 
@@ -190,14 +202,11 @@ def confirm_keyboard(lang, action):
         types.InlineKeyboardButton(TEXTS[lang]['btn_cancel'],  callback_data="cancel_action")
     )
     return markup
-    # ============================================================
-#  FLASK ROUTES
+
+# ============================================================
+#  FLASK ROUTES (Fixed Not Found error)
 # ============================================================
 @app.route('/')
-def home():
-    return "FastAdsMoney Bot is running! ✅"
-
-@app.route('/index.html')
 def serve_index():
     try:
         with open('index.html', 'r', encoding='utf-8') as f:
@@ -232,7 +241,7 @@ def run_flask():
     app.run(host='0.0.0.0', port=port)
 
 # ============================================================
-#  /start
+#  /start & ADMIN
 # ============================================================
 @bot.message_handler(commands=['start'])
 def cmd_start(message):
@@ -271,9 +280,6 @@ def cmd_start(message):
                        reply_markup=main_keyboard(lang),
                        parse_mode="Markdown")
 
-# ============================================================
-#  ADMIN COMMANDS
-# ============================================================
 @bot.message_handler(commands=['stats'])
 def cmd_admin_stats(message):
     if message.from_user.id != ADMIN_ID:
@@ -293,7 +299,6 @@ def cmd_admin_stats(message):
         f"📺 Total ads watched: *{total_ads}*\n"
         f"📢 Pending promotions: *{pending}*",
         parse_mode="Markdown")
-
 @bot.message_handler(regexp=r'^/(approve|reject)_\d+$')
 def cmd_approve_reject(message):
     if message.from_user.id != ADMIN_ID:
@@ -440,8 +445,15 @@ def handle_message(message):
 
     txt = message.text
 
-    if txt == TEXTS[lang]['btn_earn']:
-        webapp = types.WebAppInfo(url=f"https://fastadsmoney.onrender.com/index.html?user_id={user_id}")
+    # --- DEPOSIT BUTTON HANDLER ---
+    if txt == TEXTS[lang].get('btn_deposit'):
+        bot.send_message(user_id,
+            TEXTS[lang]['deposit_msg'].format(MY_TON_WALLET, user_id),
+            parse_mode="Markdown")
+        return
+
+    elif txt == TEXTS[lang]['btn_earn']:
+        webapp = types.WebAppInfo(url=f"https://{RENDER_DOMEN}/?user_id={user_id}")
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton(text=TEXTS[lang]['btn_watch_ad'], web_app=webapp))
         bot.send_message(user_id,
@@ -467,25 +479,29 @@ def handle_message(message):
             bot.send_message(user_id, TEXTS[lang]['withdraw_req'].format(balance), parse_mode="Markdown")
 
     elif txt == TEXTS[lang]['btn_promote']:
-        bot.send_message(user_id, TEXTS[lang]['promote_info'].format(PROMOTE_PRICE),
-                         reply_markup=confirm_keyboard(lang, "promote"), parse_mode="Markdown")
+        if balance < PROMOTE_PRICE:
+            bot.send_message(user_id, TEXTS[lang]['promote_low'].format(PROMOTE_PRICE), parse_mode="Markdown")
+        else:
+            bot.send_message(user_id, TEXTS[lang]['promote_info'].format(PROMOTE_PRICE),
+                             reply_markup=confirm_keyboard(lang, "promote"), parse_mode="Markdown")
 
     elif txt == TEXTS[lang]['btn_stats']:
-        ref_count = count_referrals(user_id)
-        bot.send_message(user_id, TEXTS[lang]['stats_msg'].format(user_id, balance, ads_watched, total_earned, ref_count),
-                         parse_mode="Markdown")
+        refs = count_referrals(user_id)
+        bot.send_message(user_id,
+            TEXTS[lang]['stats_msg'].format(user_id, balance, ads_watched, total_earned, refs),
+            parse_mode="Markdown")
 
     elif txt == TEXTS[lang]['btn_lang']:
-        bot.send_message(user_id, "🌐 Select language / Выберите язык:", reply_markup=lang_keyboard())
+        bot.send_message(user_id, "🌐 Select your language / Выберите язык:", reply_markup=lang_keyboard())
 
 # ============================================================
 #  START SERVER & BOT
 # ============================================================
 if __name__ == '__main__':
-    flask_thread = Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
+    t = Thread(target=run_flask)
+    t.daemon = True
+    t.start()
     
-    logger.info("Bot polling başlaýar... 🚀")
-    bot.infinity_polling()
+    logger.info("Bot polling started... 🚀")
+    bot.infinity_polling(skip_pending=True)
     
