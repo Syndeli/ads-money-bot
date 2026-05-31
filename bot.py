@@ -12,17 +12,17 @@ from flask import Flask, request, jsonify
 from threading import Thread
 
 # ============================================================
-#  CONFIGURATION  —  Şu ýeri üýtgediň
+#  CONFIGURATION
 # ============================================================
-TOKEN       = "8654803333:AAFN7wMGlzU1N8xO6ZC7w6Hm0kQ99bzmiy0"
-ADMIN_ID    = 6027574184
+TOKEN        = os.environ.get("BOT_TOKEN")
+ADMIN_ID     = int(os.environ.get("ADMIN_ID", "0"))
 BOT_USERNAME = "FastAdsMoneyBot"
 
-MONETAG_AD_ID   = "11082166"          # Monetag ad ID
-REWARD_PER_AD   = 0.0005              # Her reklama üçin TON
-REFERRAL_REWARD = 0.005               # Her referral üçin TON
-MIN_WITHDRAW    = 1.5                 # Minimum çykarmak (TON)
-PROMOTE_PRICE   = 0.5                 # Kanal/bot reklama bahasy (TON)
+MONETAG_AD_ID   = "11082166"
+REWARD_PER_AD   = 0.0005
+REFERRAL_REWARD = 0.005
+MIN_WITHDRAW    = 1.5
+PROMOTE_PRICE   = 0.5
 
 START_PHOTO = "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?q=80&w=1000&auto=format&fit=crop"
 
@@ -52,7 +52,6 @@ def get_conn():
 def init_db():
     conn = get_conn()
     cur = conn.cursor()
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id      INTEGER PRIMARY KEY,
@@ -64,7 +63,6 @@ def init_db():
             ads_watched  INTEGER DEFAULT 0
         )
     """)
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS promotions (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +73,6 @@ def init_db():
             created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
-
     conn.commit()
     conn.close()
     logger.info("Database initialized ✅")
@@ -103,12 +100,12 @@ TEXTS = {
         'withdraw_req'  : "📝 Send your *TON wallet address* (e.g. Tonkeeper) to withdraw `{:.4f} TON`:",
         'withdraw_sent' : "⏳ Your withdrawal request has been sent to admin!\nPlease wait for confirmation.",
         'admin_withdraw': "🚨 *New Withdrawal Request!*\n\n👤 User: `{}`\n💰 Amount: `{:.4f} TON`\n👛 Wallet: `{}`",
-        'promote_info'  : "📢 *Promote Your Channel or Bot*\n\nYour channel/bot will be shown to all our users!\n\n💰 Price: *{} TON* (deducted from your balance)\n\nDo you want to continue?",
+        'promote_info'  : "📢 *Promote Your Channel or Bot*\n\nYour channel/bot will be shown to all our users!\n\n💰 Price: *{} TON* (deducted from balance)\n\nDo you want to continue?",
         'promote_low'   : "❌ You need at least *{} TON* to promote.\n\n💡 Watch more ads to earn enough!",
-        'promote_link'  : "🔗 Send your *channel or bot link* (e.g. @mychannel or https://t.me/mybot):",
+        'promote_link'  : "🔗 Send your *channel or bot link*\n(e.g. @mychannel or https://t.me/mybot):",
         'promote_desc'  : "📝 Send a *short description* of your channel/bot (max 200 chars):",
         'promote_sent'  : "✅ Your promotion request has been sent!\n\nAdmin will review and publish it soon.",
-        'admin_promote' : "📢 *New Promotion Request!*\n\n👤 User: `{}`\n🔗 Link: {}\n📝 Desc: {}\n\nApprove with /approve_{} | Reject with /reject_{}",
+        'admin_promote' : "📢 *New Promotion Request!*\n\n👤 User: `{}`\n🔗 Link: {}\n📝 Desc: {}\n\n✅ /approve_{}\n❌ /reject_{}",
         'stats_msg'     : "📊 *Your Statistics*\n\n👤 User ID: `{}`\n💰 Balance: `{:.4f} TON`\n📺 Ads watched: *{}*\n🏆 Total earned: `{:.4f} TON`\n👥 Referrals: *{}*",
         'ad_reward'     : "🎉 *Congrats!* You earned `+{} TON` for watching an ad!",
         'ref_bonus'     : "🎉 Someone joined using your link! You earned `+{} TON`!",
@@ -135,13 +132,13 @@ TEXTS = {
         'admin_withdraw': "🚨 *Новая заявка на вывод!*\n\n👤 Юзер: `{}`\n💰 Сумма: `{:.4f} TON`\n👛 Кошелёк: `{}`",
         'promote_info'  : "📢 *Реклама вашего канала или бота*\n\nВаш канал/бот увидят все наши пользователи!\n\n💰 Стоимость: *{} TON* (спишется с баланса)\n\nПродолжить?",
         'promote_low'   : "❌ Для рекламы нужно минимум *{} TON*.\n\n💡 Смотрите больше рекламы!",
-        'promote_link'  : "🔗 Отправьте ссылку на *канал или бот* (например @mycannel или https://t.me/mybot):",
+        'promote_link'  : "🔗 Отправьте ссылку на *канал или бот*\n(например @mychannel или https://t.me/mybot):",
         'promote_desc'  : "📝 Отправьте *краткое описание* канала/бота (до 200 символов):",
         'promote_sent'  : "✅ Ваша заявка на рекламу отправлена!\n\nАдмин рассмотрит её в ближайшее время.",
-        'admin_promote' : "📢 *Новая заявка на рекламу!*\n\n👤 Юзер: `{}`\n🔗 Ссылка: {}\n📝 Описание: {}\n\nОдобрить: /approve_{} | Отклонить: /reject_{}",
+        'admin_promote' : "📢 *Новая заявка на рекламу!*\n\n👤 Юзер: `{}`\n🔗 Ссылка: {}\n📝 Описание: {}\n\n✅ /approve_{}\n❌ /reject_{}",
         'stats_msg'     : "📊 *Ваша статистика*\n\n👤 ID: `{}`\n💰 Баланс: `{:.4f} TON`\n📺 Просмотров: *{}*\n🏆 Заработано: `{:.4f} TON`\n👥 Рефералов: *{}*",
         'ad_reward'     : "🎉 *Отлично!* На ваш счёт зачислено `+{} TON` за просмотр рекламы!",
-        'ref_bonus'     : "🎉 По вашей ссылке зарегистрировался новый пользователь! +{} TON`!",
+        'ref_bonus'     : "🎉 По вашей ссылке зарегистрировался новый пользователь! +{} TON!",
         'cancel'        : "❌ Отменено.",
         'btn_cancel'    : "❌ Отмена",
         'btn_confirm'   : "✅ Подтвердить",
@@ -202,9 +199,13 @@ def confirm_keyboard(lang, action):
 def home():
     return "FastAdsMoney Bot is running! ✅"
 
+@app.route('/index.html')
+def serve_index():
+    with open('index.html', 'r', encoding='utf-8') as f:
+        return f.read(), 200, {'Content-Type': 'text/html'}
+
 @app.route('/monetag_reward', methods=['GET', 'POST'])
 def monetag_reward():
-    """Monetag calls this after user watches an ad."""
     user_id = request.args.get('user_id') or (request.json or {}).get('user_id')
     if not user_id:
         return jsonify({"error": "Missing user_id"}), 400
@@ -216,7 +217,9 @@ def monetag_reward():
         )
         conn.commit()
         conn.close()
-        bot.send_message(user_id, TEXTS['en']['ad_reward'].format(REWARD_PER_AD), parse_mode="Markdown")
+        row = get_user(user_id)
+        lang = row[0] if row else 'en'
+        bot.send_message(user_id, TEXTS[lang]['ad_reward'].format(REWARD_PER_AD), parse_mode="Markdown")
         logger.info(f"Reward sent to user {user_id}")
         return jsonify({"status": "ok"}), 200
     except Exception as e:
@@ -246,8 +249,10 @@ def cmd_start(message):
             (user_id, 'en', ref_id)
         )
         if ref_id and ref_id != user_id:
-            cur.execute("UPDATE users SET balance=balance+?, total_earned=total_earned+? WHERE user_id=?",
-                        (REFERRAL_REWARD, REFERRAL_REWARD, ref_id))
+            cur.execute(
+                "UPDATE users SET balance=balance+?, total_earned=total_earned+? WHERE user_id=?",
+                (REFERRAL_REWARD, REFERRAL_REWARD, ref_id)
+            )
             try:
                 bot.send_message(ref_id, TEXTS['en']['ref_bonus'].format(REFERRAL_REWARD), parse_mode="Markdown")
             except Exception:
@@ -266,17 +271,35 @@ def cmd_start(message):
                        parse_mode="Markdown")
 
 # ============================================================
-#  ADMIN — Promote approve / reject
+#  ADMIN COMMANDS
 # ============================================================
-@bot.message_handler(commands=['approve', 'reject'])
+@bot.message_handler(commands=['stats'])
+def cmd_admin_stats(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    conn = get_conn()
+    cur  = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM users")
+    total_users = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM promotions WHERE status='pending'")
+    pending = cur.fetchone()[0]
+    cur.execute("SELECT SUM(ads_watched) FROM users")
+    total_ads = cur.fetchone()[0] or 0
+    conn.close()
+    bot.send_message(ADMIN_ID,
+        f"📊 *Bot Statistics*\n\n"
+        f"👥 Total users: *{total_users}*\n"
+        f"📺 Total ads watched: *{total_ads}*\n"
+        f"📢 Pending promotions: *{pending}*",
+        parse_mode="Markdown")
+
+@bot.message_handler(regexp=r'^/(approve|reject)_\d+$')
 def cmd_approve_reject(message):
     if message.from_user.id != ADMIN_ID:
         return
-    parts = message.text.lstrip('/').split('_', 1)
-    action = parts[0]
-    promo_id = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
-    if not promo_id:
-        return
+    parts    = message.text.lstrip('/').split('_', 1)
+    action   = parts[0]
+    promo_id = int(parts[1])
 
     conn = get_conn()
     cur  = conn.cursor()
@@ -291,32 +314,26 @@ def cmd_approve_reject(message):
     if action == 'approve':
         conn.execute("UPDATE promotions SET status='approved' WHERE id=?", (promo_id,))
         conn.commit()
+        users = conn.execute("SELECT user_id FROM users").fetchall()
         conn.close()
-        # Notify all users
-        all_users = get_conn()
-        users = all_users.execute("SELECT user_id, lang FROM users").fetchall()
-        all_users.close()
-        for (u, l) in users:
+        for (u,) in users:
             try:
-                bot.send_message(u,
-                    f"📢 *Sponsored*\n\n{desc}\n\n🔗 {link}",
-                    parse_mode="Markdown")
+                bot.send_message(u, f"📢 *Sponsored*\n\n{desc}\n\n🔗 {link}", parse_mode="Markdown")
             except Exception:
                 pass
-        bot.send_message(ADMIN_ID, f"✅ Promotion #{promo_id} approved and sent to all users!")
+        bot.send_message(ADMIN_ID, f"✅ Promotion #{promo_id} sent to all users!")
         try:
-            bot.send_message(uid, "✅ Your promotion has been approved and sent to all users!", parse_mode="Markdown")
+            bot.send_message(uid, "✅ Your promotion has been approved and sent to all users!")
         except Exception:
             pass
     else:
         conn.execute("UPDATE promotions SET status='rejected' WHERE id=?", (promo_id,))
-        # Refund
         conn.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (PROMOTE_PRICE, uid))
         conn.commit()
         conn.close()
         bot.send_message(ADMIN_ID, f"❌ Promotion #{promo_id} rejected. {PROMOTE_PRICE} TON refunded.")
         try:
-            bot.send_message(uid, f"❌ Your promotion was rejected. *{PROMOTE_PRICE} TON* has been refunded.", parse_mode="Markdown")
+            bot.send_message(uid, f"❌ Your promotion was rejected. *{PROMOTE_PRICE} TON* refunded.", parse_mode="Markdown")
         except Exception:
             pass
 
@@ -328,7 +345,6 @@ def handle_callback(call):
     user_id = call.from_user.id
     data    = call.data
 
-    # --- Language selection ---
     if data.startswith("lang_"):
         lang = data.split("_")[1]
         conn = get_conn()
@@ -342,15 +358,13 @@ def handle_callback(call):
                        reply_markup=main_keyboard(lang),
                        parse_mode="Markdown")
 
-    # --- Confirm promote ---
     elif data == "confirm_promote":
         row = get_user(user_id)
-        if not row:
-            return
+        if not row: return
         lang, balance, _, _, _ = row
         if balance < PROMOTE_PRICE:
-            bot.answer_callback_query(call.id)
             bot.send_message(user_id, TEXTS[lang]['promote_low'].format(PROMOTE_PRICE), parse_mode="Markdown")
+            bot.answer_callback_query(call.id)
             return
         conn = get_conn()
         conn.execute("UPDATE users SET balance=balance-?, state='PROMO_LINK' WHERE user_id=?", (PROMOTE_PRICE, user_id))
@@ -360,9 +374,8 @@ def handle_callback(call):
         except: pass
         bot.send_message(user_id, TEXTS[lang]['promote_link'], parse_mode="Markdown")
 
-    # --- Cancel ---
     elif data == "cancel_action":
-        row = get_user(user_id)
+        row  = get_user(user_id)
         lang = row[0] if row else 'en'
         set_state(user_id, 'NONE')
         try: bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -384,7 +397,6 @@ def handle_message(message):
 
     lang, balance, state, total_earned, ads_watched = row
 
-    # ---- State: waiting for wallet ----
     if state == 'WAITING_WALLET':
         wallet = message.text.strip()
         conn = get_conn()
@@ -397,7 +409,6 @@ def handle_message(message):
         bot.send_message(user_id, TEXTS[lang]['withdraw_sent'], parse_mode="Markdown")
         return
 
-    # ---- State: waiting for promo link ----
     if state == 'PROMO_LINK':
         conn = get_conn()
         conn.execute("UPDATE users SET state='PROMO_DESC' WHERE user_id=?", (user_id,))
@@ -407,7 +418,6 @@ def handle_message(message):
         bot.send_message(user_id, TEXTS[lang]['promote_desc'], parse_mode="Markdown")
         return
 
-    # ---- State: waiting for promo description ----
     if state == 'PROMO_DESC':
         desc = message.text.strip()[:200]
         conn = get_conn()
@@ -427,16 +437,12 @@ def handle_message(message):
                 parse_mode="Markdown")
         return
 
-    # ---- Menu buttons ----
     txt = message.text
 
     if txt == TEXTS[lang]['btn_earn']:
         webapp = types.WebAppInfo(url=f"https://fastadsmoney.onrender.com/index.html?user_id={user_id}")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(
-            text=TEXTS[lang]['btn_watch_ad'],
-            web_app=webapp
-        ))
+        markup.add(types.InlineKeyboardButton(text=TEXTS[lang]['btn_watch_ad'], web_app=webapp))
         bot.send_message(user_id,
             TEXTS[lang]['earn_msg'].format(REWARD_PER_AD),
             parse_mode="Markdown",
@@ -454,5 +460,4 @@ def handle_message(message):
 
     elif txt == TEXTS[lang]['btn_withdraw']:
         if balance < MIN_WITHDRAW:
-            bot.send_message(user_id, TEXTS[lang]['withdraw_low'].format(MIN_WITHDRAW), parse_mode="Markdown")
-        els
+            bot.send_message(user_id, TEXTS[lang]['wit
