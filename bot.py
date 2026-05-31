@@ -204,14 +204,18 @@ def confirm_keyboard(lang, action):
     return markup
 
 # ============================================================
-#  FLASK ROUTES (Fixed Not Found error)
+#  FLASK ROUTES (Fixed WebApp Path)
 # ============================================================
 @app.route('/')
 def serve_index():
     try:
-        with open('index.html', 'r', encoding='utf-8') as f:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(base_dir, 'index.html')
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
             return f.read(), 200, {'Content-Type': 'text/html'}
     except Exception as e:
+        logger.error(f"HTML Error: {e}")
         return f"HTML File Error: {e}", 500
 
 @app.route('/monetag_reward', methods=['GET', 'POST'])
@@ -243,6 +247,7 @@ def run_flask():
 # ============================================================
 #  /start & ADMIN
 # ============================================================
+
 @bot.message_handler(commands=['start'])
 def cmd_start(message):
     user_id = message.from_user.id
@@ -280,25 +285,8 @@ def cmd_start(message):
                        reply_markup=main_keyboard(lang),
                        parse_mode="Markdown")
 
-@bot.message_handler(commands=['stats'])
-def cmd_admin_stats(message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    conn = get_conn()
-    cur  = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM users")
-    total_users = cur.fetchone()[0]
-    cur.execute("SELECT COUNT(*) FROM promotions WHERE status='pending'")
-    pending = cur.fetchone()[0]
-    cur.execute("SELECT SUM(ads_watched) FROM users")
-    total_ads = cur.fetchone()[0] or 0
-    conn.close()
-    bot.send_message(ADMIN_ID,
-        f"📊 *Bot Statistics*\n\n"
-        f"👥 Total users: *{total_users}*\n"
-        f"📺 Total ads watched: *{total_ads}*\n"
-        f"📢 Pending promotions: *{pending}*",
-        parse_mode="Markdown")
+@bot.message_handl
+        
 @bot.message_handler(regexp=r'^/(approve|reject)_\d+$')
 def cmd_approve_reject(message):
     if message.from_user.id != ADMIN_ID:
