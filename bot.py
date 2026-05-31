@@ -14,8 +14,8 @@ from threading import Thread
 # ============================================================
 #  CONFIGURATION
 # ============================================================
-TOKEN        = os.environ.get("BOT_TOKEN")
-ADMIN_ID     = int(os.environ.get("ADMIN_ID", "0"))
+TOKEN        = os.environ.get("8654803333:AAE4vBCBXch4gSq6FbLArE3d8zBB8yag4nE")
+ADMIN_ID     = int(os.environ.get("6027574184", "0"))
 BOT_USERNAME = "FastAdsMoneyBot"
 
 MONETAG_AD_ID   = "11082166"
