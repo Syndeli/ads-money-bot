@@ -251,7 +251,7 @@ def cmd_start(message):
         )
         if ref_id and ref_id != user_id:
             cur.execute(
-                "UPDATE users SET balance=balance+?, total_earned=total_earned+ WHERE user_id=?",
+                "UPDATE users SET balance=balance+?, total_earned=total_earned+? WHERE user_id=?",
                 (REFERRAL_REWARD, REFERRAL_REWARD, ref_id)
             )
             try:
