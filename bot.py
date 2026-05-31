@@ -12,13 +12,13 @@ from flask import Flask, request, jsonify
 from threading import Thread
 
 # ============================================================
-#  CONFIGURATION
+#  CONFIGURATION (Render Nastroykasyndan alar)
 # ============================================================
-TOKEN        = os.environ.get("8654803333:AAE4vBCBXch4gSq6FbLArE3d8zBB8yag4nE")
-ADMIN_ID     = int(os.environ.get("6027574184", "0"))
+TOKEN        = os.environ.get("BOT_TOKEN")
+ADMIN_ID     = int(os.environ.get("ADMIN_ID", "0"))
 BOT_USERNAME = "FastAdsMoneyBot"
 
-MONETAG_AD_ID   = "11082166"
+MONETAG_LINK    = "https://omg10.com/4/11082821"
 REWARD_PER_AD   = 0.0005
 REFERRAL_REWARD = 0.005
 MIN_WITHDRAW    = 1.5
@@ -201,8 +201,11 @@ def home():
 
 @app.route('/index.html')
 def serve_index():
-    with open('index.html', 'r', encoding='utf-8') as f:
-        return f.read(), 200, {'Content-Type': 'text/html'}
+    try:
+        with open('index.html', 'r', encoding='utf-8') as f:
+            return f.read(), 200, {'Content-Type': 'text/html'}
+    except Exception as e:
+        return f"HTML File Error: {e}", 500
 
 @app.route('/monetag_reward', methods=['GET', 'POST'])
 def monetag_reward():
@@ -440,6 +443,7 @@ def handle_message(message):
     txt = message.text
 
     if txt == TEXTS[lang]['btn_earn']:
+        # Siziň Render saýtyňyzyň WebApp çykgydy (Öz hakyky dörän saýt salgyňyza görä üýtgedip bilersiňiz)
         webapp = types.WebAppInfo(url=f"https://fastadsmoney.onrender.com/index.html?user_id={user_id}")
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton(text=TEXTS[lang]['btn_watch_ad'], web_app=webapp))
@@ -453,11 +457,38 @@ def handle_message(message):
             TEXTS[lang]['balance_msg'].format(balance, ads_watched, total_earned),
             parse_mode="Markdown")
 
-    elif txt == TEXTS[lang]['btn_ref']:
+        elif txt == TEXTS[lang]['btn_ref']:
         bot.send_message(user_id,
             TEXTS[lang]['ref_msg'].format(REFERRAL_REWARD, BOT_USERNAME, user_id),
             parse_mode="Markdown")
 
     elif txt == TEXTS[lang]['btn_withdraw']:
         if balance < MIN_WITHDRAW:
-            bot.send_message(user_id, TEXTS[lang]['wit
+            bot.send_message(user_id, TEXTS[lang]['withdraw_low'].format(MIN_WITHDRAW), parse_mode="Markdown")
+        else:
+            set_state(user_id, 'WAITING_WALLET')
+            bot.send_message(user_id, TEXTS[lang]['withdraw_req'].format(balance), parse_mode="Markdown")
+
+    elif txt == TEXTS[lang]['btn_promote']:
+        bot.send_message(user_id, TEXTS[lang]['promote_info'].format(PROMOTE_PRICE),
+                         reply_markup=confirm_keyboard(lang, "promote"), parse_mode="Markdown")
+
+    elif txt == TEXTS[lang]['btn_stats']:
+        ref_count = count_referrals(user_id)
+        bot.send_message(user_id, TEXTS[lang]['stats_msg'].format(user_id, balance, ads_watched, total_earned, ref_count),
+                         parse_mode="Markdown")
+
+    elif txt == TEXTS[lang]['btn_lang']:
+        bot.send_message(user_id, "🌐 Select language / Выберите язык:", reply_markup=lang_keyboard())
+
+# ============================================================
+#  START SERVER & BOT
+# ============================================================
+if __name__ == '__main__':
+    flask_thread = Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    
+    logger.info("Bot polling başlaýar... 🚀")
+    bot.infinity_polling()
+                
