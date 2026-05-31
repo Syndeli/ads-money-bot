@@ -1,270 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FastAdsMoney</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Telegram Web App SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<title>FastAdsMoney</title>
 
-    <!-- Monetag SDK -->
-    <script src="https://cdn.monetag.com/tma-sdk.js" data-ad-id="11082166" async></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+<script
+    src="//libtl.com/sdk.js"
+    data-zone="11082166"
+    data-sdk="show_11082166">
+</script>
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #f1f5f9;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+<style>
+body{
+    margin:0;
+    padding:20px;
+    font-family:Arial,sans-serif;
+    background:#0f172a;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
 
-        .logo {
-            font-size: 48px;
-            margin-bottom: 8px;
-        }
+.card{
+    width:100%;
+    max-width:400px;
+    background:#1e293b;
+    border-radius:20px;
+    padding:25px;
+    text-align:center;
+}
 
-        .title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #38bdf8;
-            margin-bottom: 4px;
-        }
+h1{
+    margin:0;
+    color:#38bdf8;
+}
 
-        .subtitle {
-            font-size: 13px;
-            color: #94a3b8;
-            margin-bottom: 32px;
-        }
+.reward{
+    margin-top:20px;
+    font-size:30px;
+    font-weight:bold;
+    color:#fbbf24;
+}
 
-        .card {
-            background: rgba(30, 41, 59, 0.9);
-            border: 1px solid #334155;
-            border-radius: 24px;
-            padding: 28px 24px;
-            width: 100%;
-            max-width: 360px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-        }
+button{
+    width:100%;
+    margin-top:25px;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:#0ea5e9;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+}
 
-        .reward-box {
-            background: linear-gradient(135deg, #0369a1, #0284c7);
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 24px;
-        }
+button:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+}
 
-        .reward-label {
-            font-size: 12px;
-            color: #bae6fd;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
-        }
-
-        .reward-amount {
-            font-size: 36px;
-            font-weight: 800;
-            color: #fbbf24;
-        }
-
-        .reward-unit {
-            font-size: 16px;
-            color: #bae6fd;
-            font-weight: 600;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #334155;
-            font-size: 14px;
-        }
-
-        .info-row:last-of-type { border-bottom: none; }
-        .info-label { color: #94a3b8; }
-        .info-value { color: #f1f5f9; font-weight: 600; }
-
-        .btn-watch {
-            width: 100%;
-            padding: 16px;
-            margin-top: 24px;
-            border: none;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #0ea5e9, #38bdf8);
-            color: white;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-watch:hover  { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14,165,233,0.4); }
-        .btn-watch:active { transform: translateY(0); }
-        .btn-watch:disabled {
-            background: #475569;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .status-msg {
-            text-align: center;
-            margin-top: 16px;
-            font-size: 13px;
-            min-height: 20px;
-            border-radius: 8px;
-            padding: 8px;
-            transition: all 0.3s;
-        }
-
-        .status-msg.success {
-            background: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-        }
-
-        .status-msg.error {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-        }
-
-        .status-msg.loading {
-            background: rgba(56, 189, 248, 0.15);
-            color: #38bdf8;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .footer {
-            margin-top: 20px;
-            font-size: 11px;
-            color: #475569;
-            text-align: center;
-        }
-    </style>
+#status{
+    margin-top:15px;
+    font-size:14px;
+}
+</style>
 </head>
 <body>
 
-    <div class="logo">💎</div>
-    <div class="title">FastAdsMoney</div>
-    <div class="subtitle">Watch ads · Earn TON crypto</div>
+<div class="card">
 
-    <div class="card">
-        <div class="reward-box">
-            <div class="reward-label">Reward per ad</div>
-            <div>
-                <span class="reward-amount">+0.0005</span>
-                <span class="reward-unit"> TON</span>
-            </div>
-        </div>
+    <h1>💎 FastAdsMoney</h1>
 
-        <div class="info-row">
-            <span class="info-label">👤 User ID</span>
-            <span class="info-value" id="userId">—</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">📺 Ads watched</span>
-            <span class="info-value" id="adsCount">0</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">💰 Session earned</span>
-            <span class="info-value" id="sessionEarned">0.0000 TON</span>
-        </div>
+    <p>Watch ads and earn TON</p>
 
-        <button class="btn-watch" id="watchBtn" onclick="watchAd()">
-            📺 Watch Ad & Earn TON
-        </button>
-
-        <div class="status-msg" id="statusMsg"></div>
+    <div class="reward">
+        +0.0005 TON
     </div>
 
-    <div class="footer">Powered by Monetag · FastAdsMoney 2025</div>
+    <p>User ID: <span id="uid">Loading...</span></p>
+
+    <button id="watchBtn">
+        📺 Watch Ad
+    </button>
+
+    <div id="status"></div>
+
+</div>
 
 <script>
-    // ---- Telegram Web App init ----
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-        tg.ready();
-        tg.expand();
+
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+const params = new URLSearchParams(window.location.search);
+
+const userId =
+    params.get("user_id") ||
+    tg.initDataUnsafe?.user?.id;
+
+document.getElementById("uid").innerText =
+    userId || "Unknown";
+
+const btn = document.getElementById("watchBtn");
+const statusBox = document.getElementById("status");
+
+function setStatus(text){
+    statusBox.innerText = text;
+}
+
+btn.onclick = async () => {
+
+    if(!userId){
+        setStatus("User ID not found");
+        return;
     }
 
-    // ---- Get user_id from URL params or Telegram ----
-    const params     = new URLSearchParams(window.location.search);
-    const userId     = params.get('user_id') || tg?.initDataUnsafe?.user?.id || null;
-    const REWARD     = 0.0005;
-    const BACKEND    = window.location.origin;   // same host as Flask
-
-    let adsWatched   = 0;
-    let sessionEarned = 0;
-
-    document.getElementById('userId').textContent = userId || 'Unknown';
-
-    // ---- Status helper ----
-    function setStatus(msg, type = '') {
-        const el = document.getElementById('statusMsg');
-        el.textContent  = msg;
-        el.className    = 'status-msg ' + type;
+    if(typeof show_11082166 !== "function"){
+        setStatus("Monetag not loaded");
+        return;
     }
 
-    // ---- Watch ad ----
-    async function watchAd() {
-        if (!userId) {
-            setStatus('❌ User not identified. Please open from the bot.', 'error');
-            return;
-        }
+    btn.disabled = true;
+    setStatus("Loading ad...");
 
-        const btn = document.getElementById('watchBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Loading ad...';
-        setStatus('⏳ Loading advertisement...', 'loading');
+    try{
 
-        try {
-            await show_11082166();
+        await show_11082166();
 
-            // Ad watched successfully — notify backend
-            adsWatched++;
-            sessionEarned = (sessionEarned + REWARD);
-            document.getElementById('adsCount').textContent     = adsWatched;
-            document.getElementById('sessionEarned').textContent = sessionEarned.toFixed(4) + ' TON';
+        await fetch(
+            `/monetag_reward?user_id=${userId}`,
+            {
+                method:"POST"
+            }
+        );
 
-            // Notify Flask backend
-            await fetch(`${BACKEND}/monetag_reward?user_id=${userId}`);
+        setStatus("🎉 Reward credited!");
 
-            setStatus(`🎉 +${REWARD} TON credited to your account!`, 'success');
+    }catch(err){
 
-        } catch (err) {
-            setStatus('⚠️ Ad not available right now. Try again later.', 'error');
-            console.error('Ad error:', err);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '📺 Watch Ad & Earn TON';
-        }
+        console.log(err);
+        setStatus("Ad not available");
+
     }
+
+    btn.disabled = false;
+};
+
 </script>
+
 </body>
-    </html>
-    
+</html>
