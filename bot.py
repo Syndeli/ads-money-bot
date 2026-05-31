@@ -78,7 +78,6 @@ def init_db():
     logger.info("Database initialized ✅")
 
 init_db()
-
 # ============================================================
 #  TEXTS  (EN / RU)
 # ============================================================
@@ -191,8 +190,7 @@ def confirm_keyboard(lang, action):
         types.InlineKeyboardButton(TEXTS[lang]['btn_cancel'],  callback_data="cancel_action")
     )
     return markup
-
-# ============================================================
+    # ============================================================
 #  FLASK ROUTES
 # ============================================================
 @app.route('/')
@@ -253,7 +251,7 @@ def cmd_start(message):
         )
         if ref_id and ref_id != user_id:
             cur.execute(
-                "UPDATE users SET balance=balance+?, total_earned=total_earned+? WHERE user_id=?",
+                "UPDATE users SET balance=balance+?, total_earned=total_earned+ WHERE user_id=?",
                 (REFERRAL_REWARD, REFERRAL_REWARD, ref_id)
             )
             try:
@@ -418,7 +416,7 @@ def handle_message(message):
         conn.execute("INSERT INTO promotions (user_id, link) VALUES (?,?)", (user_id, message.text.strip()))
         conn.commit()
         conn.close()
-        bot.send_message(user_id, TEXTS[lang]['promote_desc'], parse_mode="Markdown")
+        bot.send_message(user_id, TEXTS[lang]['promote_link'], parse_mode="Markdown")
         return
 
     if state == 'PROMO_DESC':
@@ -443,7 +441,6 @@ def handle_message(message):
     txt = message.text
 
     if txt == TEXTS[lang]['btn_earn']:
-        # Siziň Render saýtyňyzyň WebApp çykgydy (Öz hakyky dörän saýt salgyňyza görä üýtgedip bilersiňiz)
         webapp = types.WebAppInfo(url=f"https://fastadsmoney.onrender.com/index.html?user_id={user_id}")
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton(text=TEXTS[lang]['btn_watch_ad'], web_app=webapp))
@@ -457,7 +454,7 @@ def handle_message(message):
             TEXTS[lang]['balance_msg'].format(balance, ads_watched, total_earned),
             parse_mode="Markdown")
 
-        elif txt == TEXTS[lang]['btn_ref']:
+    elif txt == TEXTS[lang]['btn_ref']:
         bot.send_message(user_id,
             TEXTS[lang]['ref_msg'].format(REFERRAL_REWARD, BOT_USERNAME, user_id),
             parse_mode="Markdown")
@@ -491,4 +488,4 @@ if __name__ == '__main__':
     
     logger.info("Bot polling başlaýar... 🚀")
     bot.infinity_polling()
-                
+    
